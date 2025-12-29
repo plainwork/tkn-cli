@@ -32,23 +32,24 @@ changelog:
 	mv "$$tmp" CHANGELOG.md
 
 version: test
-	@if [ -n "$$(git status --porcelain)" ]; then \
+	@set -e; \
+	if [ -n "$$(git status --porcelain)" ]; then \
 		echo "Working tree is dirty. Commit or stash changes before versioning."; \
 		exit 1; \
 	fi; \
-	@if ! git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then \
+	if ! git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then \
 		echo "No upstream configured. Set the upstream before versioning."; \
 		exit 1; \
 	fi; \
-	@if [ -n "$$(git log @{u}..HEAD --oneline)" ]; then \
+	if [ -n "$$(git log @{u}..HEAD --oneline)" ]; then \
 		echo "Unpushed commits detected. Push before versioning."; \
 		exit 1; \
 	fi; \
-	@if [ -n "$$(git log HEAD..@{u} --oneline)" ]; then \
+	if [ -n "$$(git log HEAD..@{u} --oneline)" ]; then \
 		echo "Remote has new commits. Pull before versioning."; \
 		exit 1; \
 	fi; \
-	@v="$(V)"; \
+	v="$(V)"; \
 	current=$$(cat VERSION 2>/dev/null || echo "0.0.0"); \
 	IFS=. read -r major minor patch <<<"$$current"; \
 	major=$${major:-0}; \
