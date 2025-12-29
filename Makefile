@@ -1,4 +1,4 @@
-.PHONY: changelog version test
+.PHONY: changelog version minor major test
 
 V ?=
 
@@ -31,17 +31,77 @@ changelog:
 	} > "$$tmp"; \
 	mv "$$tmp" CHANGELOG.md
 
-version: changelog
-	@if [ -z "$(V)" ]; then \
-		echo "V is required (e.g., make version V=0.0.2)"; \
+version: test
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "Working tree is dirty. Commit or stash changes before versioning."; \
 		exit 1; \
-	fi
-	@echo "$(V)" > VERSION
-	@git add CHANGELOG.md VERSION
-	@git commit -m "Release v$(V)"
-	@git tag "v$(V)"
-	@git push origin HEAD
-	@git push origin "v$(V)"
+	fi; \
+	@if ! git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then \
+		echo "No upstream configured. Set the upstream before versioning."; \
+		exit 1; \
+	fi; \
+	@if [ -n "$$(git log @{u}..HEAD --oneline)" ]; then \
+		echo "Unpushed commits detected. Push before versioning."; \
+		exit 1; \
+	fi; \
+	@if [ -n "$$(git log HEAD..@{u} --oneline)" ]; then \
+		echo "Remote has new commits. Pull before versioning."; \
+		exit 1; \
+	fi; \
+	@v="$(V)"; \
+	current=$$(cat VERSION 2>/dev/null || echo "0.0.0"); \
+	IFS=. read -r major minor patch <<<"$$current"; \
+	major=$${major:-0}; \
+	minor=$${minor:-0}; \
+	patch=$${patch:-0}; \
+	if [ -z "$$v" ]; then \
+		patch=$$((patch + 1)); \
+		v="$$major.$$minor.$$patch"; \
+		read -r -p "Use patch version $$v? [Y/n] " confirm; \
+		case "$$confirm" in \
+			n|N|no|NO) \
+				read -r -p "Pick bump type (major/minor/patch): " bump; \
+				case "$$bump" in \
+					major) major=$$((major + 1)); minor=0; patch=0 ;; \
+					minor) minor=$$((minor + 1)); patch=0 ;; \
+					patch|"") patch=$$((patch + 1)) ;; \
+					*) echo "Unknown bump type: $$bump"; exit 1 ;; \
+				esac; \
+				v="$$major.$$minor.$$patch"; \
+				read -r -p "Use version $$v? [Y/n] " confirm2; \
+				case "$$confirm2" in \
+					n|N|no|NO) echo "Cancelled."; exit 1 ;; \
+				esac; \
+				;; \
+		esac; \
+	fi; \
+	$(MAKE) changelog V="$$v"; \
+	echo "$$v" > VERSION; \
+	git add CHANGELOG.md VERSION; \
+	git commit -m "Release v$$v"; \
+	git tag "v$$v"; \
+	git push origin HEAD; \
+	git push origin "v$$v"
+
+minor:
+	@current=$$(cat VERSION 2>/dev/null || echo "0.0.0"); \
+	IFS=. read -r major minor patch <<<"$$current"; \
+	major=$${major:-0}; \
+	minor=$${minor:-0}; \
+	minor=$$((minor + 1)); \
+	patch=0; \
+	v="$$major.$$minor.$$patch"; \
+	$(MAKE) version V="$$v"
+
+major:
+	@current=$$(cat VERSION 2>/dev/null || echo "0.0.0"); \
+	IFS=. read -r major minor patch <<<"$$current"; \
+	major=$${major:-0}; \
+	major=$$((major + 1)); \
+	minor=0; \
+	patch=0; \
+	v="$$major.$$minor.$$patch"; \
+	$(MAKE) version V="$$v"
 
 test:
 	@./tests/run.sh
