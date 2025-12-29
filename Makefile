@@ -1,10 +1,10 @@
-.PHONY: changelog version release test
+.PHONY: changelog version test
 
-VERSION ?=
+V ?=
 
 changelog:
-	@if [ -z "$(VERSION)" ]; then \
-		echo "VERSION is required (e.g., make release VERSION=0.0.2)"; \
+	@if [ -z "$(V)" ]; then \
+		echo "V is required (e.g., make version V=0.0.2)"; \
 		exit 1; \
 	fi
 	@last_tag=$$(git describe --tags --abbrev=0 2>/dev/null || true); \
@@ -22,7 +22,7 @@ changelog:
 	{ \
 		echo "# Changelog"; \
 		echo ""; \
-		echo "## v$(VERSION) - $$date"; \
+		echo "## v$(V) - $$date"; \
 		echo "$$commits"; \
 		echo ""; \
 		if [ -f CHANGELOG.md ]; then \
@@ -31,19 +31,17 @@ changelog:
 	} > "$$tmp"; \
 	mv "$$tmp" CHANGELOG.md
 
-version:
-	@if [ -z "$(VERSION)" ]; then \
-		echo "VERSION is required (e.g., make release VERSION=0.0.2)"; \
+version: changelog
+	@if [ -z "$(V)" ]; then \
+		echo "V is required (e.g., make version V=0.0.2)"; \
 		exit 1; \
 	fi
-	@echo "$(VERSION)" > VERSION
-
-release: changelog version
+	@echo "$(V)" > VERSION
 	@git add CHANGELOG.md VERSION
-	@git commit -m "Release v$(VERSION)"
-	@git tag "v$(VERSION)"
+	@git commit -m "Release v$(V)"
+	@git tag "v$(V)"
 	@git push origin HEAD
-	@git push origin "v$(VERSION)"
+	@git push origin "v$(V)"
 
 test:
 	@./tests/run.sh

@@ -35,7 +35,6 @@ run_test() {
     pass
   else
     fail "$name"
-    exit 1
   fi
 }
 
@@ -86,4 +85,8 @@ run_test "append by name" test_append_named
 run_test "search" test_search
 run_test "config dir" test_config_dir
 
-echo "Summary: $PASS_COUNT/$((PASS_COUNT + FAIL_COUNT)) passing"
+total=$((PASS_COUNT + FAIL_COUNT))
+echo "Summary: $PASS_COUNT/$total passing"
+if [[ "$FAIL_COUNT" -ne 0 ]]; then
+  exit 1
+fi
