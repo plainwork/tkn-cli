@@ -1,0 +1,66 @@
+name: Release Homebrew Formula
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  update-tap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update Homebrew tap
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          tarball_url="https://github.com/NotesTaken/tkn-cli/archive/refs/tags/${tag}.tar.gz"
+
+          if command -v shasum >/dev/null 2>&1; then
+            sha="$(curl -fsSL "$tarball_url" | shasum -a 256 | awk '{print $1}')"
+          else
+            sha="$(curl -fsSL "$tarball_url" | sha256sum | awk '{print $1}')"
+          fi
+
+          tap_dir="$(mktemp -d)"
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/NotesTaken/homebrew-taken.git" "$tap_dir"
+
+          cat > "$tap_dir/Formula/taken.rb" <<EOF
+          class Taken < Formula
+            desc "Clipboard-to-notebook CLI"
+            homepage "https://github.com/NotesTaken/tkn-cli"
+            url "${tarball_url}"
+            sha256 "${sha}"
+            version "${version}"
+
+            def install
+              bin.install "bin/tkn"
+              bin.install "bin/taken"
+            end
+
+            test do
+              system "\#{bin}/tkn", "help"
+            end
+          end
+          EOF
+
+          cd "$tap_dir"
+          git config user.name "NotesTaken Bot"
+          git config user.email "actions@github.com"
+          git add Formula/taken.rb
+
+          if git diff --cached --quiet; then
+            echo "No formula changes needed."
+            exit 0
+          fi
+
+          git commit -m "taken ${tag}"
+          git push
