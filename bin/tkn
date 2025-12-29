@@ -2,6 +2,7 @@
 set -euo pipefail
 
 APP_NAME="tkn"
+VERSION="0.0.1"
 NOTEBOOK_DIR_DEFAULT="$HOME/.taken/notebooks"
 CONFIG_DIR="${TAKEN_CONFIG_DIR:-$HOME/.config/taken}"
 EDITOR_FILE="$CONFIG_DIR/editor"
@@ -95,6 +96,8 @@ print_version() {
   version_file="$script_dir/../VERSION"
   if [[ -f "$version_file" ]]; then
     cat "$version_file"
+  elif [[ -n "${VERSION:-}" ]]; then
+    echo "$VERSION"
   else
     echo "unknown"
   fi

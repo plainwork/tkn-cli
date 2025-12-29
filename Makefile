@@ -78,6 +78,8 @@ version: test
 	fi; \
 	$(MAKE) changelog V="$$v"; \
 	echo "$$v" > VERSION; \
+	sed -i.bak "s/^VERSION=.*/VERSION=\"$$v\"/" bin/tkn; \
+	rm -f bin/tkn.bak; \
 	git add CHANGELOG.md VERSION; \
 	git commit -m "Release v$$v"; \
 	git tag "v$$v"; \
