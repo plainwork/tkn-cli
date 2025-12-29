@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.0.4 - 2025-12-29
+- fix formatting (1d7975d)
+- robust versioning control (bc0ac8a)
+- better make and tests (56dea21)
+
 ## v0.0.3 - 2025-12-29
 - add better link handling (f4f4eda)
 
