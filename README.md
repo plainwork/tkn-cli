@@ -52,3 +52,9 @@ Or install directly:
 ```bash
 brew install NotesTaken/taken/taken
 ```
+
+## Tests
+
+```bash
+make test
+```

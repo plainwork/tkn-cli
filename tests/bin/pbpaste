@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+printf '%s' "${TAKEN_TEST_CLIPBOARD:-test clip}"

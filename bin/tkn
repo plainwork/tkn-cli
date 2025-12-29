@@ -190,6 +190,13 @@ list_notebooks() {
   printf '%s\n' "${names[@]}"
 }
 
+use_fzf() {
+  if [[ "${TAKEN_NO_FZF:-}" == "1" ]]; then
+    return 1
+  fi
+  command -v fzf >/dev/null 2>&1
+}
+
 open_notebook_at_date() {
   local name="$1"
   local date="$2"
@@ -206,7 +213,7 @@ open_notebook_at_date() {
     line=1
   fi
 
-  if command -v fzf >/dev/null 2>&1; then
+  if use_fzf; then
     local wrap_mode
     wrap_mode=$(get_preview_wrap)
     printf '%s\n' "$name | $date" | fzf --prompt="Notebook> " --height=70% --border \
@@ -335,7 +342,7 @@ print_date_matches() {
     return 0
   fi
 
-  if command -v fzf >/dev/null 2>&1; then
+  if use_fzf; then
     local selected
     selected=$(printf '%s\n' "${output[@]}" | fzf --prompt="Dates> " --height=60% --border) || return 0
     if [[ -n "$selected" ]]; then
@@ -372,7 +379,7 @@ select_notebook() {
   local default
   default=$(get_default_notebook)
 
-  if command -v fzf >/dev/null 2>&1; then
+  if use_fzf; then
     local ordered=()
     local n
     while IFS= read -r n; do
@@ -638,7 +645,7 @@ cmd_search() {
     }
   ' "$NOTEBOOK_DIR"/*.md)
 
-  if command -v fzf >/dev/null 2>&1; then
+  if use_fzf; then
     "${search_cmd[@]}" | fzf --prompt="Results> " --height=60% --border || true
   else
     "${search_cmd[@]}" || true
@@ -648,7 +655,7 @@ cmd_search() {
 cmd_open() {
   ensure_dir
   local name="${1:-}"
-  if command -v fzf >/dev/null 2>&1; then
+  if use_fzf; then
     local wrap_mode
     wrap_mode=$(get_preview_wrap)
     local fzf_cmd=(
