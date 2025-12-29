@@ -9,6 +9,7 @@ DEFAULT_NOTEBOOK_FILE="$CONFIG_DIR/default_notebook"
 NOTEBOOK_DIR_FILE="$CONFIG_DIR/notebooks_dir"
 WRAP_PREVIEW_FILE="$CONFIG_DIR/preview_wrap"
 GIT_REMOTE_FILE="$CONFIG_DIR/git_remote"
+ENTRY_FORMAT_FILE="$CONFIG_DIR/entry_format"
 NOTEBOOK_DIR="${TAKEN_DIR:-$NOTEBOOK_DIR_DEFAULT}"
 DATE_FMT="%Y-%m-%d"
 
@@ -50,6 +51,7 @@ Config:
   ~/.config/taken/default_notebook  Default notebook name
   ~/.config/taken/notebooks_dir     Default notebooks directory
   ~/.config/taken/preview_wrap      Preview wrap setting (wrap/nowrap)
+  ~/.config/taken/entry_format      Default entry format (paragraph/list)
   ~/.config/taken/git_remote        Git remote for sync
 USAGE
 }
@@ -188,6 +190,24 @@ list_notebooks() {
     names+=("$(basename "$f" .md)")
   done
   printf '%s\n' "${names[@]}"
+}
+
+get_entry_format() {
+  local format="paragraph"
+  if [[ -f "$ENTRY_FORMAT_FILE" ]]; then
+    local val
+    val=$(cat "$ENTRY_FORMAT_FILE")
+    if [[ "$val" == "list" ]]; then
+      format="list"
+    fi
+  fi
+  printf '%s' "$format"
+}
+
+set_entry_format() {
+  local format="$1"
+  mkdir -p "$CONFIG_DIR"
+  printf '%s' "$format" > "$ENTRY_FORMAT_FILE"
 }
 
 use_fzf() {
@@ -509,19 +529,17 @@ format_entry() {
   fi
 
   local code_fence_re='^[[:space:]]*```'
+  local format
+  format=$(get_entry_format)
+
   local in_code_block=0
   if [[ "${lines[0]}" =~ $code_fence_re ]]; then
     in_code_block=1
   fi
-  local first
-  if [[ "$in_code_block" == "1" ]] || [[ "${lines[0]}" =~ ^[[:space:]][[:space:]][[:space:]][[:space:]] ]] || [[ "${lines[0]}" =~ ^[[:space:]]*\t ]]; then
-    first="${lines[0]}"
-  else
-    first="$(linkify_text "${lines[0]}")"
-  fi
-  printf '%s' "- ${first}"
+
+  local out_lines=()
   local i
-  for ((i = 1; i < ${#lines[@]}; i++)); do
+  for ((i = 0; i < ${#lines[@]}; i++)); do
     if [[ "${lines[$i]}" =~ $code_fence_re ]]; then
       if [[ "$in_code_block" == "1" ]]; then
         in_code_block=0
@@ -529,14 +547,27 @@ format_entry() {
         in_code_block=1
       fi
     fi
+
     local next
     if [[ "$in_code_block" == "1" ]] || [[ "${lines[$i]}" =~ ^[[:space:]][[:space:]][[:space:]][[:space:]] ]] || [[ "${lines[$i]}" =~ ^[[:space:]]*\t ]]; then
       next="${lines[$i]}"
     else
       next="$(linkify_text "${lines[$i]}")"
     fi
-    printf '\n  %s' "$next"
+    out_lines+=("$next")
   done
+
+  if [[ "$format" == "list" ]]; then
+    printf '%s' "- ${out_lines[0]}"
+    for ((i = 1; i < ${#out_lines[@]}; i++)); do
+      printf '\n  %s' "${out_lines[$i]}"
+    done
+  else
+    printf '%s' "${out_lines[0]}"
+    for ((i = 1; i < ${#out_lines[@]}; i++)); do
+      printf '\n%s' "${out_lines[$i]}"
+    done
+  fi
 }
 
 append_to_notebook() {
@@ -545,29 +576,87 @@ append_to_notebook() {
   local today
   today=$(date +"$DATE_FMT")
   local heading="## $today"
+  local format
+  format=$(get_entry_format)
+  local entry_existing="$entry"
+  if [[ "$format" == "paragraph" ]]; then
+    entry_existing=$'\n'"$entry"
+  fi
 
   if [[ ! -f "$file" ]]; then
-    printf '%s\n%s\n' "$heading" "$entry" > "$file"
+    printf '%s\n%s\n' "$heading" "$entry_existing" > "$file"
     return
   fi
 
   if ! grep -Fxq "$heading" "$file"; then
     {
       [[ -s "$file" ]] && printf '\n'
-      printf '%s\n%s\n' "$heading" "$entry"
+      printf '%s\n%s\n' "$heading" "$entry_existing"
     } >> "$file"
     return
   fi
 
   local tmp
+  local entry_tmp
   tmp="${file}.tmp.$$"
-  awk -v heading="$heading" -v entry="$entry" '
-    $0 == heading { print; in_section = 1; next }
-    in_section && $0 ~ /^## / { print entry; in_section = 0 }
-    { print }
-    END { if (in_section) print entry }
-  ' "$file" > "$tmp"
-  mv "$tmp" "$file"
+  entry_tmp="${file}.entry.$$"
+  printf '%s\n' "$entry_existing" > "$entry_tmp"
+  if command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1; then
+    local py
+    if command -v python3 >/dev/null 2>&1; then
+      py="python3"
+    else
+      py="python"
+    fi
+    "$py" - "$file" "$entry_tmp" "$heading" <<'PY'
+import sys
+
+path, entry_path, heading = sys.argv[1:4]
+with open(path, "r", encoding="utf-8") as f:
+    lines = f.read().splitlines()
+with open(entry_path, "r", encoding="utf-8") as f:
+    entry_lines = f.read().splitlines()
+
+out = []
+in_section = False
+inserted = False
+for line in lines:
+    if line == heading:
+        out.append(line)
+        in_section = True
+        continue
+    if in_section and line.startswith("## "):
+        out.extend(entry_lines)
+        out.append(line)
+        in_section = False
+        inserted = True
+        continue
+    out.append(line)
+
+if in_section:
+    out.extend(entry_lines)
+    inserted = True
+
+with open(path, "w", encoding="utf-8") as f:
+    f.write("\n".join(out) + "\n")
+PY
+    rm -f "$entry_tmp"
+  else
+    awk -v heading="$heading" -v entry_file="$entry_tmp" '
+      function print_entry() {
+        while ((getline line < entry_file) > 0) {
+          print line
+        }
+        close(entry_file)
+      }
+      $0 == heading { print; in_section = 1; next }
+      in_section && $0 ~ /^## / { print_entry(); in_section = 0 }
+      { print }
+      END { if (in_section) print_entry() }
+    ' "$file" > "$tmp"
+    rm -f "$entry_tmp"
+    mv "$tmp" "$file"
+  fi
 }
 
 cmd_add() {
@@ -814,13 +903,29 @@ cmd_config() {
           ;;
       esac
       ;;
+    entry)
+      if [[ -z "$value" ]]; then
+        get_entry_format
+        return 0
+      fi
+      case "$value" in
+        paragraph|list)
+          set_entry_format "$value"
+          echo "Entry format set to: $value"
+          ;;
+        *)
+          echo "Value must be 'paragraph' or 'list'." >&2
+          return 1
+          ;;
+      esac
+      ;;
     reset)
-      rm -f "$EDITOR_FILE" "$NOTEBOOK_DIR_FILE" "$GIT_REMOTE_FILE" "$WRAP_PREVIEW_FILE"
+      rm -f "$EDITOR_FILE" "$NOTEBOOK_DIR_FILE" "$GIT_REMOTE_FILE" "$WRAP_PREVIEW_FILE" "$ENTRY_FORMAT_FILE"
       NOTEBOOK_DIR="${TAKEN_DIR:-$NOTEBOOK_DIR_DEFAULT}"
-      echo "Config reset (dir/editor/git/wrap)."
+      echo "Config reset (dir/editor/git/wrap/entry)."
       ;;
     ""|help|-h|--help)
-      echo "Usage: tkn config <dir|editor|wrap|reset> [value]" >&2
+      echo "Usage: tkn config <dir|editor|wrap|entry|reset> [value]" >&2
       return 1
       ;;
     *)

@@ -56,7 +56,7 @@ test_append_default() {
   "$TKN" >/dev/null
   local content
   content="$(cat "$TAKEN_DIR/tokens.md")"
-  [[ "$content" == *"## $today"* && "$content" == *"- hello world"* ]]
+  [[ "$content" == *"## $today"* && "$content" == *"hello world"* ]]
 }
 
 test_append_named() {
@@ -64,7 +64,15 @@ test_append_named() {
   "$TKN" tokens >/dev/null
   local content
   content="$(cat "$TAKEN_DIR/tokens.md")"
-  [[ "$content" == *"- second entry"* ]]
+  [[ "$content" == *"second entry"* ]]
+}
+
+test_multiline_clipboard() {
+  export TAKEN_TEST_CLIPBOARD=$'first line\nsecond line\nthird line'
+  "$TKN" tokens >/dev/null
+  local content
+  content="$(cat "$TAKEN_DIR/tokens.md")"
+  [[ "$content" == *"first line"* && "$content" == *"second line"* && "$content" == *"third line"* ]]
 }
 
 test_search() {
@@ -82,6 +90,7 @@ run_test "add notebook" test_add_notebook
 run_test "default notebook" test_default_notebook
 run_test "append uses default" test_append_default
 run_test "append by name" test_append_named
+run_test "multiline clipboard" test_multiline_clipboard
 run_test "search" test_search
 run_test "config dir" test_config_dir
 

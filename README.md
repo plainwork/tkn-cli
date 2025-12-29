@@ -18,6 +18,7 @@ A tiny Bash CLI that appends your clipboard to Markdown notebooks.
 - `tkn config dir <path>` to set the notebooks directory (prints current if omitted)
 - `tkn config editor <cmd>` to set the editor (prints current if omitted)
 - `tkn config wrap <wrap|nowrap>` to set preview wrapping (prints current if omitted)
+- `tkn config entry <paragraph|list>` to set entry format (prints current if omitted)
 - `tkn config reset` to clear saved dir/editor/git settings
 - Notebook names cannot match built-in command names (e.g. `add`, `search`, `open`)
 - `tkn today` to show notebooks with notes from today
