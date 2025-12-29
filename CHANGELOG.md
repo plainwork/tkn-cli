@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.0.6 - 2025-12-29
+- add version command (0cc650f)
+
 ## v0.0.5 - 2025-12-29
 - support multiline clipboard entries (c78abbf)
 
