@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.0.8 - 2025-12-29
+- fix version reporting (d12166f)
+
 ## v0.0.7 - 2025-12-29
 - save version info (5971cee)
 
