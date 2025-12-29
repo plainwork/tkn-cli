@@ -46,3 +46,9 @@ Install via Homebrew tap:
 brew tap NotesTaken/taken https://github.com/NotesTaken/homebrew-taken
 brew install taken
 ```
+
+Or install directly:
+
+```bash
+brew install NotesTaken/taken/taken
+```
