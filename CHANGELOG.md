@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.0.3 - 2025-12-29
+- add better link handling (f4f4eda)
+
 ## v0.0.2 - 2025-12-29
 - add tests (a46b0fe)
 
