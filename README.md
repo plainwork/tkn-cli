@@ -15,6 +15,7 @@ A tiny Bash CLI that appends your clipboard to Markdown notebooks.
 - `tkn default <name>` to set the default notebook (save to `~/.config/taken/default_notebook`)
 - `tkn default --clear` to unset the default notebook
 - `tkn sync <remote>` to sync notebooks with a git repo (stores remote and keeps in sync)
+- `tkn version` to show the current version
 - `tkn config dir <path>` to set the notebooks directory (prints current if omitted)
 - `tkn config editor <cmd>` to set the editor (prints current if omitted)
 - `tkn config wrap <wrap|nowrap>` to set preview wrapping (prints current if omitted)
