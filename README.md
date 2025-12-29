@@ -45,14 +45,14 @@ It is also used to filter search results and preview notebooks in `tkn open`.
 Install via Homebrew tap:
 
 ```bash
-brew tap NotesTaken/taken https://github.com/NotesTaken/homebrew-taken
+brew tap plainwork/taken https://github.com/plainwork/homebrew-taken
 brew install taken
 ```
 
 Or install directly:
 
 ```bash
-brew install NotesTaken/taken/taken
+brew install plainwork/taken/taken
 ```
 
 ## Tests

@@ -21,7 +21,7 @@ jobs:
 
           tag="${GITHUB_REF_NAME}"
           version="${tag#v}"
-          tarball_url="https://github.com/NotesTaken/tkn-cli/archive/refs/tags/${tag}.tar.gz"
+          tarball_url="https://github.com/plainwork/tkn-cli/archive/refs/tags/${tag}.tar.gz"
 
           if command -v shasum >/dev/null 2>&1; then
             sha="$(curl -fsSL "$tarball_url" | shasum -a 256 | awk '{print $1}')"
@@ -30,12 +30,12 @@ jobs:
           fi
 
           tap_dir="$(mktemp -d)"
-          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/NotesTaken/homebrew-taken.git" "$tap_dir"
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/plainwork/homebrew-taken.git" "$tap_dir"
 
           cat > "$tap_dir/Formula/taken.rb" <<EOF
           class Taken < Formula
             desc "Clipboard-to-notebook CLI"
-            homepage "https://github.com/NotesTaken/tkn-cli"
+            homepage "https://github.com/plainwork/tkn-cli"
             url "${tarball_url}"
             sha256 "${sha}"
             version "${version}"
