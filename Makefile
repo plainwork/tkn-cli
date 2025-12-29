@@ -80,7 +80,7 @@ version: test
 	echo "$$v" > VERSION; \
 	sed -i.bak "s/^VERSION=.*/VERSION=\"$$v\"/" bin/tkn; \
 	rm -f bin/tkn.bak; \
-	git add CHANGELOG.md VERSION; \
+	git add CHANGELOG.md VERSION bin/tkn; \
 	git commit -m "Release v$$v"; \
 	git tag "v$$v"; \
 	git push origin HEAD; \
