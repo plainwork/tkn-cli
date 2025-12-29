@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.0.2 - 2025-12-29
+- add tests (a46b0fe)
+
 ## v0.0.1 - 2025-12-29
 - added homebrew workflow (62f372f)
 - Update install instructions (de31fe1)
