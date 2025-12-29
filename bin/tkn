@@ -478,6 +478,54 @@ format_entry() {
   local text="$1"
   text="${text//$'\r'/}"
 
+  local linkify_text() {
+    local line="$1"
+    local in_code_block="${2:-0}"
+    if [[ "$in_code_block" == "1" ]]; then
+      printf '%s' "$line"
+      return
+    fi
+    if [[ "$line" =~ ^[[:space:]]{4} ]] || [[ "$line" =~ ^[[:space:]]*\t ]]; then
+      printf '%s' "$line"
+      return
+    fi
+
+    local code_tokens=()
+    local code_idx=0
+    while [[ "$line" =~ (\`[^`]+\`) ]]; do
+      local placeholder="__TAKEN_CODE_${code_idx}__"
+      code_tokens+=("${BASH_REMATCH[1]}")
+      line="${line/${BASH_REMATCH[1]}/$placeholder}"
+      code_idx=$((code_idx + 1))
+    done
+
+    local tokens=()
+    local idx=0
+    while [[ "$line" =~ (\[[^][]+\]\([^)]+\)) ]]; do
+      local placeholder="__TAKEN_LINK_${idx}__"
+      tokens+=("${BASH_REMATCH[1]}")
+      line="${line/${BASH_REMATCH[1]}/$placeholder}"
+      idx=$((idx + 1))
+    done
+
+    line=$(printf '%s' "$line" | sed -E \
+      -e 's#(https?://[^[:space:]]+)#[\1](\1)#g' \
+      -e 's#(^|[[:space:]])(www\.[^[:space:]]+)#\1[\2](https://\2)#g')
+
+    local i
+    for i in "${!tokens[@]}"; do
+      local placeholder="__TAKEN_LINK_${i}__"
+      line="${line//$placeholder/${tokens[$i]}}"
+    done
+
+    for i in "${!code_tokens[@]}"; do
+      local placeholder="__TAKEN_CODE_${i}__"
+      line="${line//$placeholder/${code_tokens[$i]}}"
+    done
+
+    printf '%s' "$line"
+  }
+
   local lines=()
   local line
   while IFS= read -r line; do
@@ -489,10 +537,25 @@ format_entry() {
     return
   fi
 
-  printf '%s' "- ${lines[0]}"
+  local in_code_block=0
+  if [[ "${lines[0]}" =~ ^[[:space:]]*``` ]]; then
+    in_code_block=1
+  fi
+  local first
+  first="$(linkify_text "${lines[0]}" "$in_code_block")"
+  printf '%s' "- ${first}"
   local i
   for ((i = 1; i < ${#lines[@]}; i++)); do
-    printf '\n  %s' "${lines[$i]}"
+    if [[ "${lines[$i]}" =~ ^[[:space:]]*``` ]]; then
+      if [[ "$in_code_block" == "1" ]]; then
+        in_code_block=0
+      else
+        in_code_block=1
+      fi
+    fi
+    local next
+    next="$(linkify_text "${lines[$i]}" "$in_code_block")"
+    printf '\n  %s' "$next"
   done
 }
 
