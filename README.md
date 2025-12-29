@@ -40,15 +40,9 @@ It is also used to filter search results and preview notebooks in `tkn open`.
 
 ## Homebrew
 
-This repo includes a Homebrew formula. From a tap:
+Install via Homebrew tap:
 
 ```bash
-brew tap mark/taken https://github.com/mark/taken-cli
+brew tap NotesTaken/taken https://github.com/NotesTaken/homebrew-taken
 brew install taken
-```
-
-If you're testing locally:
-
-```bash
-brew install --formula ./Formula/taken.rb
 ```
