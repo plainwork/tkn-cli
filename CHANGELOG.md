@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.0.5 - 2025-12-29
+- support multiline clipboard entries (c78abbf)
+
 ## v0.0.4 - 2025-12-29
 - fix formatting (1d7975d)
 - robust versioning control (bc0ac8a)
