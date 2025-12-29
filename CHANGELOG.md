@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.0.9 - 2025-12-29
+- switch orgs (1dbda2b)
+
 ## v0.0.8 - 2025-12-29
 - fix version reporting (d12166f)
 
