@@ -199,11 +199,21 @@ list_notebooks() {
   local f
   for f in "$NOTEBOOK_DIR"/*.md; do
     [[ -e "$f" ]] || continue
+    case "$f" in
+      *~ | *.swp | *.swo | *.swx | *.bak | *.tmp | *.orig | *.rej)
+        continue
+        ;;
+    esac
     files+=("$f")
   done
   local names=()
   for f in "${files[@]}"; do
-    names+=("$(basename "$f" .md)")
+    local name
+    name=$(basename "$f" .md)
+    if [[ -z "${name//[[:space:]]/}" ]]; then
+      continue
+    fi
+    names+=("$name")
   done
   printf '%s\n' "${names[@]}"
 }
@@ -421,7 +431,11 @@ select_notebook() {
     while IFS= read -r n; do
       [[ -z "$n" ]] && continue
       if [[ -n "$default" && "$n" == "$default" ]]; then
-        ordered=("$n" "${ordered[@]}")
+        if [[ ${#ordered[@]} -eq 0 ]]; then
+          ordered=("$n")
+        else
+          ordered=("$n" "${ordered[@]}")
+        fi
       else
         ordered+=("$n")
       fi
