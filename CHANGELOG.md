@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.0.11 - 2025-12-29
+- improve date helpers (8a61743)
+
 ## v0.0.10 - 2025-12-29
 - improved notebook finding (f6f6b9e)
 
