@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.0.10 - 2025-12-29
+- improved notebook finding (f6f6b9e)
+
 ## v0.0.9 - 2025-12-29
 - switch orgs (1dbda2b)
 
