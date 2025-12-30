@@ -11,6 +11,7 @@ NOTEBOOK_DIR_FILE="$CONFIG_DIR/notebooks_dir"
 WRAP_PREVIEW_FILE="$CONFIG_DIR/preview_wrap"
 GIT_REMOTE_FILE="$CONFIG_DIR/git_remote"
 ENTRY_FORMAT_FILE="$CONFIG_DIR/entry_format"
+WEEK_START_FILE="$CONFIG_DIR/week_start"
 NOTEBOOK_DIR="${TAKEN_DIR:-$NOTEBOOK_DIR_DEFAULT}"
 DATE_FMT="%Y-%m-%d"
 
@@ -36,8 +37,10 @@ Commands:
 Date queries:
   today                     Notebooks with notes from today
   yesterday                 Notebooks with notes from yesterday
-  last week                 Notebooks with notes from the last 7 days
-  last month                Notebooks with notes from the last 30 days
+  this week                 Notebooks with notes from this calendar week
+  this month                Notebooks with notes from this calendar month
+  last week                 Notebooks with notes from the previous calendar week
+  last month                Notebooks with notes from the previous calendar month
   between <m1> <m2> [year]   Notes between months (e.g. jun aug 2024)
   on <YYYY-MM-DD>           Notebooks with notes on a date
 
@@ -54,6 +57,7 @@ Config:
   ~/.config/taken/notebooks_dir     Default notebooks directory
   ~/.config/taken/preview_wrap      Preview wrap setting (wrap/nowrap)
   ~/.config/taken/entry_format      Default entry format (paragraph/list)
+  ~/.config/taken/week_start        Week start day (monday/sunday)
   ~/.config/taken/git_remote        Git remote for sync
 USAGE
 }
@@ -106,7 +110,7 @@ print_version() {
 is_reserved_name() {
   local name="$1"
   case "$name" in
-    add|remove|rm|delete|search|find|open|view|edit|default|config|sync|version|today|yesterday|last|between|on|help|-h|--help|-s|--select|-v|--version)
+    add|remove|rm|delete|search|find|open|view|edit|default|config|sync|version|today|yesterday|this|last|between|on|help|-h|--help|-s|--select|-v|--version)
       return 0
       ;;
     *)
@@ -236,6 +240,24 @@ set_entry_format() {
   printf '%s' "$format" > "$ENTRY_FORMAT_FILE"
 }
 
+get_week_start() {
+  if [[ -f "$WEEK_START_FILE" ]]; then
+    local val
+    val=$(cat "$WEEK_START_FILE")
+    if [[ "$val" == "sunday" || "$val" == "monday" ]]; then
+      printf '%s' "$val"
+      return 0
+    fi
+  fi
+  printf '%s' "monday"
+}
+
+set_week_start() {
+  local start="$1"
+  mkdir -p "$CONFIG_DIR"
+  printf '%s' "$start" > "$WEEK_START_FILE"
+}
+
 use_fzf() {
   if [[ "${TAKEN_NO_FZF:-}" == "1" ]]; then
     return 1
@@ -283,10 +305,13 @@ date_tool_style() {
 date_shift() {
   local base="$1"
   local days="$2"
+  if [[ ! "$base" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+    base=$(date +"%Y-%m-%d")
+  fi
   local style
   style=$(date_tool_style)
   if [[ "$style" == "bsd" ]]; then
-    date -j -f "%Y-%m-%d" "$base" -v"${days}d" "+%Y-%m-%d"
+    date -j -v"${days}d" -f "%Y-%m-%d" "$base" "+%Y-%m-%d"
   else
     date -d "$base $days days" "+%Y-%m-%d"
   fi
@@ -301,6 +326,41 @@ date_to_epoch() {
   else
     date -d "$d" "+%s"
   fi
+}
+
+date_day_of_week_iso() {
+  local d="$1"
+  local style
+  style=$(date_tool_style)
+  if [[ "$style" == "bsd" ]]; then
+    date -j -f "%Y-%m-%d" "$d" "+%u"
+  else
+    date -d "$d" "+%u"
+  fi
+}
+
+week_start_offset() {
+  local dow="$1"
+  local week_start="$2"
+  case "$week_start" in
+    sunday)
+      echo $((dow % 7))
+      ;;
+    monday|*)
+      echo $((dow - 1))
+      ;;
+  esac
+}
+
+current_week_start() {
+  local today="$1"
+  local week_start
+  week_start=$(get_week_start)
+  local dow
+  dow=$(date_day_of_week_iso "$today")
+  local offset
+  offset=$(week_start_offset "$dow" "$week_start")
+  date_shift "$today" "-$offset"
 }
 
 month_to_num() {
@@ -339,7 +399,7 @@ last_day_of_month() {
 
   local first_next="${next_year}-${next_month}-01"
   if [[ "$style" == "bsd" ]]; then
-    date -j -f "%Y-%m-%d" "$first_next" -v-1d "+%Y-%m-%d"
+    date -j -v-1d -f "%Y-%m-%d" "$first_next" "+%Y-%m-%d"
   else
     date -d "$first_next -1 day" "+%Y-%m-%d"
   fi
@@ -949,13 +1009,29 @@ cmd_config() {
           ;;
       esac
       ;;
+    week)
+      if [[ -z "$value" ]]; then
+        get_week_start
+        return 0
+      fi
+      case "$value" in
+        monday|sunday)
+          set_week_start "$value"
+          echo "Week start set to: $value"
+          ;;
+        *)
+          echo "Value must be 'monday' or 'sunday'." >&2
+          return 1
+          ;;
+      esac
+      ;;
     reset)
-      rm -f "$EDITOR_FILE" "$NOTEBOOK_DIR_FILE" "$GIT_REMOTE_FILE" "$WRAP_PREVIEW_FILE" "$ENTRY_FORMAT_FILE"
+      rm -f "$EDITOR_FILE" "$NOTEBOOK_DIR_FILE" "$GIT_REMOTE_FILE" "$WRAP_PREVIEW_FILE" "$ENTRY_FORMAT_FILE" "$WEEK_START_FILE"
       NOTEBOOK_DIR="${TAKEN_DIR:-$NOTEBOOK_DIR_DEFAULT}"
-      echo "Config reset (dir/editor/git/wrap/entry)."
+      echo "Config reset (dir/editor/git/wrap/entry/week)."
       ;;
     ""|help|-h|--help)
-      echo "Usage: tkn config <dir|editor|wrap|entry|reset> [value]" >&2
+      echo "Usage: tkn config <dir|editor|wrap|entry|week|reset> [value]" >&2
       return 1
       ;;
     *)
@@ -1071,19 +1147,65 @@ cmd_last() {
   local today
   today=$(date +"$DATE_FMT")
   local start
+  local end
   case "$span" in
     week)
-      start=$(date_shift "$today" -6)
+      local this_start
+      this_start=$(current_week_start "$today")
+      start=$(date_shift "$this_start" -7)
+      end=$(date_shift "$this_start" -1)
       ;;
     month)
-      start=$(date_shift "$today" -29)
+      local year
+      local month
+      year=$(date +"%Y")
+      month=$(date +"%m")
+      if [[ "$month" == "01" ]]; then
+        year=$((10#$year - 1))
+        month="12"
+      else
+        month=$(printf '%02d' "$((10#$month - 1))")
+      fi
+      start="${year}-${month}-01"
+      end=$(last_day_of_month "$year" "$month")
       ;;
     *)
       echo "Unknown range: $span" >&2
       return 1
       ;;
   esac
-  print_date_matches "$start" "$today"
+  print_date_matches "$start" "$end"
+}
+
+cmd_this() {
+  local span="${1:-}"
+  if [[ -z "$span" ]]; then
+    echo "Usage: tkn this <week|month>" >&2
+    return 1
+  fi
+  local today
+  today=$(date +"$DATE_FMT")
+  local start
+  local end
+  case "$span" in
+    week)
+      start=$(current_week_start "$today")
+      end="$today"
+      ;;
+    month)
+      local year
+      local month
+      year=$(date +"%Y")
+      month=$(date +"%m")
+      start="${year}-${month}-01"
+      end=$(last_day_of_month "$year" "$month")
+      ;;
+    *)
+      echo "Unknown range: $span" >&2
+      return 1
+      ;;
+  esac
+  print_date_matches "$start" "$end"
 }
 
 cmd_between() {
@@ -1175,6 +1297,10 @@ main() {
       ;;
     yesterday)
       cmd_yesterday
+      ;;
+    this)
+      shift
+      cmd_this "${1:-}"
       ;;
     last)
       shift
