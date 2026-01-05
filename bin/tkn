@@ -201,27 +201,24 @@ get_editor() {
 }
 
 list_notebooks() {
-  local files=()
+  local nullglob_state
+  nullglob_state=$(shopt -p nullglob)
+  shopt -s nullglob
   local f
   for f in "$NOTEBOOK_DIR"/*.md; do
-    [[ -e "$f" ]] || continue
     case "$f" in
       *~ | *.swp | *.swo | *.swx | *.bak | *.tmp | *.orig | *.rej)
         continue
         ;;
     esac
-    files+=("$f")
-  done
-  local names=()
-  for f in "${files[@]}"; do
     local name
     name=$(basename "$f" .md)
     if [[ -z "${name//[[:space:]]/}" ]]; then
       continue
     fi
-    names+=("$name")
+    printf '%s\n' "$name"
   done
-  printf '%s\n' "${names[@]}"
+  eval "$nullglob_state"
 }
 
 get_entry_format() {
@@ -877,11 +874,13 @@ cmd_search() {
 }
 
 cmd_list() {
-  if [[ -z "$(list_notebooks)" ]]; then
+  local notebooks
+  notebooks=$(list_notebooks)
+  if [[ -z "$notebooks" ]]; then
     echo "No notebooks found. Use 'tkn add' to create one." >&2
     return 1
   fi
-  list_notebooks
+  printf '%s\n' "$notebooks"
 }
 
 cmd_open() {
