@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.12 - 2026-01-05
+- make search case insensitive (4f7c7d8)
+- add icons (756fb3d)
+
 ## v0.0.11 - 2025-12-29
 - improve date helpers (8a61743)
 
