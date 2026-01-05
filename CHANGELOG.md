@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.0.14 - 2026-01-05
+- add menu icon (5a0a039)
+
 ## v0.0.13 - 2026-01-05
 - add notebooks list (7ae6112)
 
