@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.0.13 - 2026-01-05
+- add notebooks list (7ae6112)
+
 ## v0.0.12 - 2026-01-05
 - make search case insensitive (4f7c7d8)
 - add icons (756fb3d)
