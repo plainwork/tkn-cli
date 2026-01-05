@@ -9,6 +9,7 @@ A tiny Bash CLI that appends your clipboard to Markdown notebooks.
 - `tkn --select` (or `-s`) to force notebook selection
 - `tkn add <name>` to create a notebook
 - `tkn remove <name>` to delete a notebook
+- `tkn list` (or `tkn ls`) to list notebooks
 - `tkn search <query>` to search notebooks for a phrase (includes date context)
 - `tkn open <name>` to open a notebook in a simple TUI
 - `tkn edit <name>` to edit a notebook in your `$EDITOR` (prompts and saves a default in `~/.config/taken/editor` if unset)

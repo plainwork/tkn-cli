@@ -26,6 +26,8 @@ Usage:
 Commands:
   add [name]                Create a new notebook
   remove [name]             Remove a notebook
+  list                      List notebooks
+  ls                        List notebooks
   search [query]            Search notebooks for a phrase
   open [name]               Open a notebook in a simple TUI
   edit [name]               Edit a notebook in your editor
@@ -110,7 +112,7 @@ print_version() {
 is_reserved_name() {
   local name="$1"
   case "$name" in
-    add|remove|rm|delete|search|find|open|view|edit|default|config|sync|version|today|yesterday|this|last|between|on|help|-h|--help|-s|--select|-v|--version)
+    add|remove|rm|delete|list|ls|search|find|open|view|edit|default|config|sync|version|today|yesterday|this|last|between|on|help|-h|--help|-s|--select|-v|--version)
       return 0
       ;;
     *)
@@ -874,6 +876,14 @@ cmd_search() {
   fi
 }
 
+cmd_list() {
+  if [[ -z "$(list_notebooks)" ]]; then
+    echo "No notebooks found. Use 'tkn add' to create one." >&2
+    return 1
+  fi
+  list_notebooks
+}
+
 cmd_open() {
   ensure_dir
   local name="${1:-}"
@@ -1271,6 +1281,9 @@ main() {
     search|find)
       shift
       cmd_search "${1:-}"
+      ;;
+    list|ls)
+      cmd_list
       ;;
     open|view)
       shift
