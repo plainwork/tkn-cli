@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.0.15 - 2026-01-05
+- bug fix (cc0f01c)
+
 ## v0.0.14 - 2026-01-05
 - add menu icon (5a0a039)
 
